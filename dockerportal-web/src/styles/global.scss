@@ -1,0 +1,46 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #app {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+// Scrollbar
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c0c4cc;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+// Status colors
+.status-running {
+  color: #67c23a;
+}
+
+.status-stopped {
+  color: #909399;
+}
+
+.status-error {
+  color: #f56c6c;
+}
+
+.status-connected {
+  color: #67c23a;
+}
+
+.status-disconnected {
+  color: #909399;
+}

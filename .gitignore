@@ -1,0 +1,31 @@
+# ---- 构建产物 ----
+target/
+dist/
+*.jar
+*.war
+
+# ---- 依赖 ----
+node_modules/
+
+# ---- 运行时数据（H2 库、SSH 凭据密钥 .secret.key、登录令牌密钥 .jwt.key 都在这里）----
+data/
+*.mv.db
+*.trace.db
+*.key
+
+# ---- 部署配置：.env 含真实密钥，绝不入库；样例 .env.example 要留 ----
+.env
+.env.local
+*.env.local
+
+# ---- IDE / 编辑器 ----
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# ---- 系统与日志 ----
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*

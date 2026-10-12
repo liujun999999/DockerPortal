@@ -1,0 +1,33 @@
+services:
+  dockerportal:
+    # 本地构建：build: .    或直接使用镜像：image: dockerportal:latest
+    build: .
+    image: dockerportal:latest
+    container_name: dockerportal
+    ports:
+      - "${DP_SERVER_PORT:-9800}:9800"
+    volumes:
+      # 管理本机 Docker：挂载 docker.sock（容器内所有管理操作等同该 socket 权限，请知悉安全风险）
+      - /var/run/docker.sock:/var/run/docker.sock
+      # 远程/Swarm 环境：无需挂载 docker.sock，改在「环境管理」里用 TCP/SSH 连接即可
+      # 持久化 H2 数据库与配置
+      - dockerportal-data:/app/data
+    environment:
+      - DP_SERVER_PORT=9800
+      # JWT 签名密钥：留空即可，首次启动会在数据目录自动生成随机密钥 .jwt.key（务必与数据库一同备份，
+      # 丢失会使已登录令牌全部失效）。想自行托管密钥：openssl rand -base64 48 后写进 .env
+      - DP_JWT_SECRET=${DP_JWT_SECRET:-}
+      # 初始化入口：首次访问靠它建管理员账号；装完可设为 false 彻底关掉这个匿名接口
+      - DP_SETUP_ENABLED=${DP_SETUP_ENABLED:-true}
+      - DP_DATA_PATH=/app/data
+      - TZ=Asia/Shanghai
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:9800/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  dockerportal-data:

@@ -1,0 +1,58 @@
+server:
+  port: ${DP_SERVER_PORT:9800}
+
+spring:
+  application:
+    name: dockerportal
+
+  datasource:
+    url: jdbc:h2:file:${DP_DATA_PATH:./data}/dockerportal;AUTO_SERVER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+    default-property-inclusion: non_null
+    serialization:
+      # docker-java 原生模型（ExposedPort/PortBinding 等）无标准 bean 属性，
+      # 直接返回 inspect 响应时避免 Jackson 抛 FAIL_ON_EMPTY_BEANS 导致 500
+      fail-on-empty-beans: false
+
+dockerportal:
+  jwt:
+    # 仅用于兜底告警：全新安装会由数据目录下的 .jwt.key 覆盖（见 SetupKeyEnvironmentPostProcessor），
+    # 该默认值公开可见，已装实例仍靠它提示运维自行设置 DP_JWT_SECRET
+    secret: ${DP_JWT_SECRET:dockerportal-default-secret-key-change-in-production-2024}
+    access-token-expiration: 86400000   # 24 hours
+    refresh-token-expiration: 604800000 # 7 days
+
+  setup:
+    # 装完后设为 false 可彻底关掉匿名初始化入口
+    enabled: ${DP_SETUP_ENABLED:true}
+
+  data-path: ${DP_DATA_PATH:./data}
+
+  web:
+    # 单镜像部署时前端构建产物位置（开发模式无需设置，vite 直接提供前端）
+    static-location: ${DP_STATIC_LOCATION:classpath:/static/}
+
+logging:
+  level:
+    com.dockerportal: DEBUG
+    org.springframework.security: INFO
