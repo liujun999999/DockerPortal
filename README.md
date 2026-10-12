@@ -30,6 +30,7 @@
 
 - 创建容器：端口 / 环境变量 / 卷挂载 / 网络 / 命令 / 重启策略 / 资源限制，全表单化
 - 生命周期操作、重命名、**运行中热更新 CPU 与内存限制**
+- **容器克隆**（从 inspect 反推配置到表单预填）与**批量启停 / 重启 / 删除**（多选后顶部出现工具栏）
 - 实时日志（WebSocket 流式，支持全屏）、交互式 `bash` 终端（xterm.js）
 - 容器内文件浏览与编辑（走 Docker archive 接口，文本编辑器带行号与语法高亮）
 - 镜像拉取 / 推送 / 打标签 / 分层历史 / Dockerfile 构建
@@ -59,16 +60,15 @@
 
 ## 界面预览
 
-<!--
-  截图放 docs/screenshots/ 后取消本段注释，四张图保持同一窗口尺寸（建议 1440x900）：
-  | 总览 | 容器列表 | 服务详情 | SSH 终端 |
-  | --- | --- | --- | --- |
-  | ![dashboard](docs/screenshots/dashboard.png) | ![containers](docs/screenshots/containers.png) | ![service](docs/screenshots/service.png) | ![ssh](docs/screenshots/ssh.png) |
-  快速出图：面板跑起来后 `docker run --rm -v "$PWD:/w" playwright image <URL> /w/shot.png --viewport-size=1440,900 --wait-for-timeout=6000`
-  （登录态页面需要用 Playwright codegen 录一段脚本再截。）
--->
+| 容器列表（多选可批量启停 / 删除） | Swarm 服务（副本实际/期望、扩缩容） |
+| --- | --- |
+| ![容器列表](docs/screenshots/containers.jpg) | ![Swarm 服务](docs/screenshots/service.jpg) |
 
-这里放四张截图：总览页（磁盘占用 + 服务概览）、容器列表、服务详情、SSH 终端。想帮忙补图的贡献者欢迎提 PR。
+| 节点详情（硬件、引擎标签与节点标签） | SSH 终端（多标签、全屏） |
+| --- | --- |
+| ![节点详情](docs/screenshots/node-detail.jpg) | ![SSH 终端](docs/screenshots/ssh.jpg) |
+
+> 截图来自本地 Parallels 虚拟机里的单节点 Swarm（Docker 29.8.1），内网地址已保留原样。欢迎补上总览页、监控曲线与告警规则的截图，提 PR 时放到 `docs/screenshots/` 即可（建议统一窗口尺寸）。
 
 ## 快速开始
 
@@ -179,7 +179,7 @@ cd dockerportal-web && npm run build               # vue-tsc 类型检查 + vite
 - 告警的规则管理、事件历史、Webhook 发送链路都已完整，指标自动评估排在下一阶段（见路线图），需要时可以先用外部脚本调 `/api` 触发。
 - 界面与文档目前只有中文，i18n 在路线图上。
 - 集成测试与 e2e 正在补齐，改动核心链路前先备份一份数据目录，稳妥。
-- 容器克隆、批量操作、资源配额与成本视图等能力还在规划中。
+- 批量操作目前只覆盖容器；镜像 / 数据卷 / 网络的批量入口、资源配额与成本视图还在规划中。
 
 ## 路线图
 
@@ -187,8 +187,9 @@ cd dockerportal-web && npm run build               # vue-tsc 类型检查 + vite
 - [x] Swarm 全链路：节点标签、服务、Stack、Secrets/Configs、任务
 - [x] 容器终端、日志流、文件浏览编辑、资源热更新
 - [x] 磁盘占用与分级 prune、审计日志、RBAC
+- [x] 容器克隆与批量启停 / 重启 / 删除
 - [ ] 告警指标自动评估（把现有 stats 采集接进 `AlertService.fireAlert`，入口小，很适合上手贡献）
-- [ ] 批量操作与容器克隆
+- [ ] 镜像 / 数据卷 / 网络的批量操作
 - [ ] 自动化测试（后端集成测试 + 前端 e2e）
 - [ ] 英文界面与文档（i18n）
 - [ ] OpenAPI 文档导出，方便脚本化调用
