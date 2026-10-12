@@ -13,7 +13,11 @@ spring:
 
   h2:
     console:
-      enabled: true
+      # 默认关掉。H2 控制台自身只判断来源 IP 是否 loopback（JakartaWebServlet#allow），
+      # 而裸机 + 反向代理到 127.0.0.1:9800 的部署会把公网请求当成“本机”放行，
+      # 叠加下面 sa 空密码，进去就是任意 SQL，还能用 FILE_READ 读走 .secret.key
+      # 解密全部 SSH / 镜像仓库凭据。本地确实要看库时显式开：DP_H2_CONSOLE=true mvn spring-boot:run
+      enabled: ${DP_H2_CONSOLE:false}
       path: /h2-console
 
   jpa:

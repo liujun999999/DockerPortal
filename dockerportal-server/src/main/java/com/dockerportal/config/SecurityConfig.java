@@ -3,6 +3,7 @@ package com.dockerportal.config;
 import com.dockerportal.security.JwtAuthFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -32,6 +33,15 @@ public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
 
+    /**
+     * H2 控制台开关，与 spring.h2.console.enabled 同源（默认 false）。
+     * 控制台是 servlet 页面，浏览器导航时带不了 JWT 头，一旦开启就只能匿名放行，
+     * 所以它必须是显式的开发开关而不是默认值；关闭时 servlet 根本不会注册，
+     * /h2-console/** 落到下面的规则返回 401，静态资源调度器也对其返回 null。
+     */
+    @Value("${spring.h2.console.enabled:false}")
+    private boolean h2ConsoleEnabled;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -39,18 +49,24 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()
-                // 首次安装向导必须匿名可用；顺序敏感，放在 /api/** 之后会被前面的规则拦掉
-                .requestMatchers("/api/setup", "/api/setup/**").permitAll()
-                .requestMatchers("/h2-console/**").permitAll()
-                .requestMatchers("/ws/**").permitAll()
-                // 后端 API 统一鉴权（角色细粒度由方法级 @PreAuthorize 控制）
-                .requestMatchers("/api/**").authenticated()
-                // 其余为前端静态资源与 SPA history 路由，公开（不含敏感数据）
-                .requestMatchers(HttpMethod.GET, "/**").permitAll()
-                .anyRequest().authenticated()
-            )
+            .authorizeHttpRequests(auth -> {
+                auth.requestMatchers("/api/auth/**").permitAll()
+                        // 首次安装向导必须匿名可用；顺序敏感，放在 /api/** 之后会被前面的规则拦掉
+                        .requestMatchers("/api/setup", "/api/setup/**").permitAll();
+                if (h2ConsoleEnabled) {
+                    auth.requestMatchers("/h2-console/**").permitAll();
+                } else {
+                    // 不开时直接拒绝（实测匿名请求被 entry point 返成 401）。不拦的话这些路径
+                    // 会落到静态资源调度器上抛 NoResourceFoundException，探测一次就刷一条 500 堆栈进日志
+                    auth.requestMatchers("/h2-console/**").denyAll();
+                }
+                auth.requestMatchers("/ws/**").permitAll()
+                        // 后端 API 统一鉴权（角色细粒度由方法级 @PreAuthorize 控制）
+                        .requestMatchers("/api/**").authenticated()
+                        // 其余为前端静态资源与 SPA history 路由，公开（不含敏感数据）
+                        .requestMatchers(HttpMethod.GET, "/**").permitAll()
+                        .anyRequest().authenticated();
+            })
             .exceptionHandling(ex -> ex
                 // 未认证（无 token / token 过期无效）→ 401，前端会跳登录页；
                 // 已认证但角色不够 → 403（@PreAuthorize 抛 AccessDeniedException 走 GlobalExceptionHandler）。

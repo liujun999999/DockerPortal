@@ -98,6 +98,7 @@ docker compose up -d --build  # 首次构建约 3~5 分钟
 | `DP_SETUP_ENABLED` | `true` | 匿名初始化入口开关，装完建议置 `false` |
 | `DP_ADMIN_PASSWORD` | 空 | 设置后走无人值守建号 |
 | `DP_DATA_PATH` | `./data` | 数据目录：H2 库 + `.secret.key` + `.jwt.key` |
+| `DP_H2_CONSOLE` | `false` | H2 Web 控制台（`/h2-console`）开关，只供本地调试 |
 | `TZ` | `Asia/Shanghai` | 时区，影响日志与审计时间 |
 
 卡在哪一步（连不上远程环境、权限不够、镜像拉不下来）都可以直接去 [交流与反馈](#交流与反馈)，QQ 群 **1064928035**。
@@ -108,6 +109,7 @@ docker compose up -d --build  # 首次构建约 3~5 分钟
 - SSH 与镜像仓库凭据使用 **AES-256-GCM** 加密落库，密钥是数据目录下的 `.secret.key`。
 - 备份必须包含整个数据目录：只拿库文件而丢了 `.jwt.key`，重启后所有已登录令牌失效；丢了 `.secret.key`，已存的凭据无法再解密（需重填）。
 - 项目本身不做 TLS 终止，对外暴露请置于反向代理（Nginx / Caddy）之后并启用 HTTPS。
+- **H2 控制台默认关闭**（`DP_H2_CONSOLE=false`）。它没办法用 JWT 鉴权（浏览器导航带不了请求头），一旦开启就是匿名放行，而库里 `sa` 是空密码；H2 自身只拦非 loopback 来源，而**反向代理到 `127.0.0.1:9800` 的部署会把公网请求当成“本机”放行**，进去就是任意 SQL，还能用 `FILE_READ()` 读走 `.secret.key` 解密全部凭据。本地要看库时临时开：`DP_H2_CONSOLE=true mvn spring-boot:run`，看完关掉；公网实例永远不要开。
 
 ## 权限模型
 
