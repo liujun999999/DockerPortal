@@ -51,7 +51,11 @@
                   {{ node.Description?.Platform?.OS || '-' }} / {{ node.Description?.Platform?.Architecture || '-' }}
                 </el-descriptions-item>
                 <el-descriptions-item label="CPU">{{ cpuText }}</el-descriptions-item>
-                <el-descriptions-item label="内存">{{ memText }}</el-descriptions-item>
+                <el-descriptions-item label="内存">
+                  {{ memText }}
+                  <!-- Docker Desktop / 云主机上 daemon 报的是虚拟机可见内存，与物理内存不是同一个数 -->
+                  <div class="dim">daemon 上报值；虚拟机 / Docker Desktop 下为 guest 可见内存，可能小于机器物理内存</div>
+                </el-descriptions-item>
                 <el-descriptions-item label="Docker 版本">{{ node.Description?.Engine?.EngineVersion || '-' }}</el-descriptions-item>
                 <el-descriptions-item label="插件" :span="2">
                   <template v-if="node.Description?.Engine?.Plugins?.length">
@@ -243,9 +247,10 @@ const cpuText = computed(() => {
   const n = node.value?.Description?.Resources?.NanoCPUs
   return n ? `${(n / 1e9).toFixed(n % 1e9 === 0 ? 0 : 2)} 核` : '-'
 })
+// 这里不能取整：8GB 虚拟机实际可用 7.748GiB，显示成“8 GB”会让人以为统计错机器内存
 const memText = computed(() => {
   const m = node.value?.Description?.Resources?.MemoryBytes
-  return m ? formatBytes(m, 0) : '-'
+  return m ? formatBytes(m, 2) : '-'
 })
 
 const taskStateOptions = computed(() => {
