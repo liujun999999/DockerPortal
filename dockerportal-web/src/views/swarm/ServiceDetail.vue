@@ -176,20 +176,27 @@
           <div ref="logsPanelRef" class="panel" :class="{ 'is-fs': logsFullscreen }">
             <div class="logs-bar">
               <span class="lbl">副本</span>
-              <el-select v-model="selectedTask" style="width:300px" @change="loadLogs">
+              <el-select v-model="selectedTask" style="width:300px" @change="loadLogs()">
                 <el-option label="全部副本（聚合）" value="" />
                 <el-option v-for="t in taskLogOptions" :key="t.value" :label="t.label" :value="t.value" />
               </el-select>
               <span class="lbl">尾部行数</span>
               <el-input-number v-model="logTail" :min="10" :max="5000" :step="100" style="width:130px" />
-              <el-button :loading="logsLoading" @click="loadLogs">刷新日志</el-button>
+              <el-button :loading="logsLoading" @click="loadLogs()">刷新日志</el-button>
+              <el-select v-model="logInterval" :disabled="!logAutoRefresh" style="width:96px">
+                <el-option :value="2000" label="2 秒" />
+                <el-option :value="5000" label="5 秒" />
+                <el-option :value="10000" label="10 秒" />
+                <el-option :value="30000" label="30 秒" />
+              </el-select>
+              <el-switch v-model="logAutoRefresh" active-text="自动刷新" />
               <el-button class="fs-btn" :icon="FullScreen" @click="toggleLogsFullscreen">
                 {{ logsFullscreen ? '退出全屏' : '全屏' }}
               </el-button>
             </div>
             <el-alert v-if="!selectedTask" type="info" :closable="false" show-icon style="margin-bottom:8px"
               title="当前为全部副本聚合日志（docker service logs），行首带 task 标识；如需只看单个副本请在上方选择。" />
-            <pre class="logs-pre" v-loading="logsLoading">{{ logsText || '（暂无日志）' }}</pre>
+            <pre ref="logsPreRef" class="logs-pre" v-loading="logsLoading">{{ logsText || '（暂无日志）' }}</pre>
           </div>
         </el-tab-pane>
       </el-tabs>
@@ -212,7 +219,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Refresh, ArrowLeft, FullScreen } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -220,6 +227,7 @@ import { getService, getServiceTasks, getServiceLogs, getTaskLogs, getTaskExecTa
 import { useEnvironmentStore } from '@/stores/environment'
 import { usePermission } from '@/composables/usePermission'
 import { useFullscreen } from '@/composables/useFullscreen'
+import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import { requireTypedConfirm } from '@/utils/danger'
 import { formatDateTime } from '@/utils/format'
 import { TASK_STATES } from '@/utils/constants'
@@ -241,6 +249,7 @@ const logsLoading = ref(false)
 const logTail = ref(200)
 const selectedTask = ref('')
 const logsPanelRef = ref<HTMLElement>()
+const logsPreRef = ref<HTMLElement | null>(null)
 const { isFullscreen: logsFullscreen, toggle: toggleLogsFullscreen } = useFullscreen(logsPanelRef)
 
 // 任务状态过滤：'' 为全部。状态取值见 TASK_STATES，实际出现过的才列入（按任务数降序）
@@ -366,20 +375,43 @@ async function loadTasks() {
   }
 }
 
-async function loadLogs() {
+async function loadLogs(silent = false) {
   const envId = envStore.currentEnvId
   if (!envId) return
-  logsLoading.value = true
+  // silent：自动刷新走静默，不弹整块 loading 遮罩，避免每几秒闪一下
+  if (!silent) logsLoading.value = true
   try {
     const r: any = selectedTask.value
       ? await getTaskLogs(envId, selectedTask.value, logTail.value)
       : await getServiceLogs(envId, route.params.id as string, logTail.value)
     logsText.value = typeof r === 'string' ? r : Array.isArray(r) ? r.join('\n') : (r?.logs ?? JSON.stringify(r))
+    scrollToLogBottom(!silent)
   } catch (e: any) {
-    logsText.value = ''
-    ElMessage.error(e?.message || '读取日志失败')
-  } finally { logsLoading.value = false }
+    if (!silent) {
+      logsText.value = ''
+      ElMessage.error(e?.message || '读取日志失败')
+    }
+    console.error(e)
+  } finally { if (!silent) logsLoading.value = false }
 }
+
+/**
+ * 刷新后是否跟到底部：手动 / 首次加载强制到底；自动刷新只在用户本来就贴在底部时跟随，
+ * 否则用户往上翻历史时会被每几秒拽回去。
+ */
+function scrollToLogBottom(force: boolean) {
+  nextTick(() => {
+    const el = logsPreRef.value
+    if (!el) return
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40
+    if (force || nearBottom) el.scrollTop = el.scrollHeight
+  })
+}
+
+// 日志自动刷新：只在「日志」tab 激活时真正拉取，切到其他 tab 时定时器空转不发请求
+const { enabled: logAutoRefresh, interval: logInterval } = useAutoRefresh(
+  () => { if (activeTab.value === 'logs') return loadLogs(true) },
+)
 
 // 从任务表点「查看日志」：选中该副本（task）并切到日志 tab
 function viewTaskLogs(row: any) {
