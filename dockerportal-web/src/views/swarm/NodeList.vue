@@ -8,7 +8,7 @@
           <el-button @click="loadData" :icon="Refresh">刷新</el-button>
         </div>
       </template>
-      <el-table :data="nodes" stripe v-loading="loading">
+      <el-table :data="pageData" stripe v-loading="loading">
         <el-table-column label="ID" width="140">
           <template #default="{ row }">
             <el-link type="primary" :underline="false" @click="openDetail(row)">
@@ -70,6 +70,7 @@
           </template>
         </el-table-column>
       </el-table>
+      <PaginationBar v-model:page="page" v-model:pageSize="pageSize" :total="total" />
     </el-card>
   </div>
 </template>
@@ -82,6 +83,8 @@ import { ElMessage } from 'element-plus'
 import { getNodes, updateNode, removeNode as apiRemoveNode } from '@/api/node'
 import { useEnvironmentStore } from '@/stores/environment'
 import { usePermission } from '@/composables/usePermission'
+import { usePagination } from '@/composables/usePagination'
+import PaginationBar from '@/components/common/PaginationBar.vue'
 import { NODE_ROLES, NODE_STATUS, NODE_AVAILABILITY } from '@/utils/constants'
 import StatusTag from '@/components/common/StatusTag.vue'
 import SwarmGuide from '@/components/swarm/SwarmGuide.vue'
@@ -90,6 +93,7 @@ const envStore = useEnvironmentStore()
 const router = useRouter()
 const { isAdmin } = usePermission()
 const nodes = ref<any[]>([])
+const { page, pageSize, total, pageData } = usePagination(nodes)
 const loading = ref(false)
 const guideCode = ref(0)
 

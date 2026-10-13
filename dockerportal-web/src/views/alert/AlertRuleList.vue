@@ -7,7 +7,7 @@
           <el-button type="primary" @click="$router.push('/alerts/rules/create')">新建规则</el-button>
         </div>
       </template>
-      <el-table :data="rules" stripe v-loading="loading">
+      <el-table :data="pageData" stripe v-loading="loading">
         <el-table-column prop="name" label="名称" min-width="150" />
         <el-table-column label="目标类型" width="100">
           <template #default="{ row }">{{ row.targetType }}</template>
@@ -39,6 +39,7 @@
           </template>
         </el-table-column>
       </el-table>
+      <PaginationBar v-model:page="page" v-model:pageSize="pageSize" :total="total" />
     </el-card>
   </div>
 </template>
@@ -49,10 +50,13 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getAlertRules, deleteAlertRule, toggleAlertRule } from '@/api/alert'
 import { ALERT_SEVERITY } from '@/utils/constants'
+import { usePagination } from '@/composables/usePagination'
+import PaginationBar from '@/components/common/PaginationBar.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
 
 const router = useRouter()
 const rules = ref<any[]>([])
+const { page, pageSize, total, pageData } = usePagination(rules)
 const loading = ref(false)
 
 async function loadData() {

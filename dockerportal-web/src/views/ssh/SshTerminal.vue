@@ -50,7 +50,7 @@
     <!-- 已有 SSH 配置 -->
     <el-card v-if="configs.length" shadow="never" class="mb-10">
       <template #header><span>已配置的 SSH 连接</span></template>
-      <el-table :data="configs" size="small" stripe>
+      <el-table :data="pageData" size="small" stripe>
         <el-table-column label="名称" min-width="160">
           <template #default="{ row }">
             <span>{{ row.nodeId ? nodeLabelById(row.nodeId) : (row.name || row.host) }}</span>
@@ -71,6 +71,7 @@
           </template>
         </el-table-column>
       </el-table>
+      <PaginationBar v-model:page="page" v-model:pageSize="pageSize" :total="total" />
     </el-card>
 
     <!-- SSH 配置对话框 -->
@@ -126,6 +127,8 @@ import { FitAddon } from 'xterm-addon-fit'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { FullScreen } from '@element-plus/icons-vue'
 import { useFullscreen } from '@/composables/useFullscreen'
+import { usePagination } from '@/composables/usePagination'
+import PaginationBar from '@/components/common/PaginationBar.vue'
 import { getNodes } from '@/api/node'
 import { getSshConfigs, createSshConfig, updateSshConfig, deleteSshConfig, testSshConfig } from '@/api/ssh'
 import { useEnvironmentStore } from '@/stores/environment'
@@ -137,6 +140,7 @@ const route = useRoute()
 const router = useRouter()
 const nodes = ref<any[]>([])
 const configs = ref<any[]>([])
+const { page, pageSize, total, pageData } = usePagination(configs)
 const selectedTarget = ref('')
 const activeTab = ref('')
 const configVisible = ref(false)

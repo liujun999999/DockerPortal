@@ -4,7 +4,7 @@
       <h2>环境管理</h2>
       <el-button type="primary" @click="showForm = true">添加环境</el-button>
     </div>
-    <el-table :data="environments" v-loading="loading" stripe>
+    <el-table :data="pageData" v-loading="loading" stripe>
       <el-table-column label="名称" prop="name" min-width="150" />
       <el-table-column label="类型" prop="type" width="100" />
       <el-table-column label="地址" prop="endpoint" min-width="250" />
@@ -35,6 +35,7 @@
         </template>
       </el-table-column>
     </el-table>
+    <PaginationBar v-model:page="page" v-model:pageSize="pageSize" :total="total" />
 
     <el-dialog v-model="showForm" :title="editingId ? '编辑环境' : '添加环境'" width="500px">
       <el-form :model="form" label-width="100px">
@@ -74,10 +75,13 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { getEnvironments, createEnvironment, updateEnvironment, deleteEnvironment, connectEnvironment, disconnectEnvironment, testEnvironment } from '@/api/environment'
 import { useEnvironmentStore } from '@/stores/environment'
+import { usePagination } from '@/composables/usePagination'
+import PaginationBar from '@/components/common/PaginationBar.vue'
 import { ElMessage } from 'element-plus'
 
 const envStore = useEnvironmentStore()
 const environments = ref<any[]>([])
+const { page, pageSize, total, pageData } = usePagination(environments)
 const loading = ref(false)
 const showForm = ref(false)
 const editingId = ref<number | null>(null)

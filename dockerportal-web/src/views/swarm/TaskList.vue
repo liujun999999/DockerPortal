@@ -8,7 +8,7 @@
           <el-button @click="loadData" :icon="Refresh">刷新</el-button>
         </div>
       </template>
-      <el-table :data="tasks" stripe v-loading="loading">
+      <el-table :data="pageData" stripe v-loading="loading">
         <el-table-column label="ID" width="130">
           <template #default="{ row }">{{ row.ID?.substring(0, 12) }}</template>
         </el-table-column>
@@ -33,6 +33,7 @@
           <template #default="{ row }">{{ formatDateTime(row.UpdatedAt) }}</template>
         </el-table-column>
       </el-table>
+      <PaginationBar v-model:page="page" v-model:pageSize="pageSize" :total="total" />
     </el-card>
   </div>
 </template>
@@ -42,6 +43,8 @@ import { ref, onMounted } from 'vue'
 import { Refresh } from '@element-plus/icons-vue'
 import { getSwarmTasks } from '@/api/swarm'
 import { useEnvironmentStore } from '@/stores/environment'
+import { usePagination } from '@/composables/usePagination'
+import PaginationBar from '@/components/common/PaginationBar.vue'
 import { TASK_STATES } from '@/utils/constants'
 import { formatDateTime } from '@/utils/format'
 import StatusTag from '@/components/common/StatusTag.vue'
@@ -49,6 +52,7 @@ import SwarmGuide from '@/components/swarm/SwarmGuide.vue'
 
 const envStore = useEnvironmentStore()
 const tasks = ref<any[]>([])
+const { page, pageSize, total, pageData } = usePagination(tasks)
 const loading = ref(false)
 const guideCode = ref(0)
 

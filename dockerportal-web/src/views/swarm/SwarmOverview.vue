@@ -82,7 +82,7 @@
             <el-button type="primary" text @click="$router.push('/swarm/nodes')">查看全部</el-button>
           </div>
         </template>
-        <el-table :data="nodes" stripe>
+        <el-table :data="pageData" stripe>
           <el-table-column prop="ID" label="ID" width="150">
             <template #default="{ row }">{{ row.ID?.substring(0, 12) }}</template>
           </el-table-column>
@@ -108,6 +108,7 @@
             <template #default="{ row }">{{ row.Description?.Engine?.EngineVersion || '-' }}</template>
           </el-table-column>
         </el-table>
+        <PaginationBar v-model:page="page" v-model:pageSize="pageSize" :total="total" />
       </el-card>
     </template>
   </div>
@@ -124,11 +125,14 @@ import { getSwarmTasks } from '@/api/swarm'
 import { useEnvironmentStore } from '@/stores/environment'
 import { NODE_ROLES, NODE_STATUS, NODE_AVAILABILITY } from '@/utils/constants'
 import StatusTag from '@/components/common/StatusTag.vue'
+import { usePagination } from '@/composables/usePagination'
+import PaginationBar from '@/components/common/PaginationBar.vue'
 import SwarmGuide from '@/components/swarm/SwarmGuide.vue'
 
 const envStore = useEnvironmentStore()
 const swarmInfo = ref<any>({})
 const nodes = ref<any[]>([])
+const { page, pageSize, total, pageData } = usePagination(nodes)
 const serviceCount = ref(0)
 const taskCount = ref(0)
 const guideCode = ref(0)

@@ -12,7 +12,7 @@
         <el-link type="primary" style="font-size: 12px" @click="clearFilter">查看全部</el-link>
       </template>
     </el-alert>
-    <el-table :data="filteredContainers" v-loading="loading" stripe @selection-change="sel = $event">
+    <el-table :data="pageData" v-loading="loading" stripe @selection-change="sel = $event">
       <el-table-column v-if="canOperate" type="selection" width="45" :selectable="() => true" />
       <el-table-column label="名称" prop="Names" min-width="180">
         <template #default="{ row }">
@@ -48,6 +48,7 @@
         </template>
       </el-table-column>
     </el-table>
+    <PaginationBar v-model:page="page" v-model:pageSize="pageSize" :total="total" />
 
     <!-- 批量操作工具栏 -->
     <div v-if="canOperate && sel.length" class="batch-bar">
@@ -101,6 +102,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useEnvironmentStore } from '@/stores/environment'
 import { usePermission } from '@/composables/usePermission'
+import { usePagination } from '@/composables/usePagination'
+import PaginationBar from '@/components/common/PaginationBar.vue'
 import { getContainers, containerAction, removeContainer, updateContainerResources } from '@/api/container'
 import { pruneContainers } from '@/api/system'
 import { runPrune } from '@/utils/prune'
@@ -191,6 +194,8 @@ const filteredContainers = computed(() => {
     stateFilter.value === 'running' ? c.State === 'running' : c.State !== 'running'
   )
 })
+
+const { page, pageSize, total, pageData } = usePagination(filteredContainers)
 
 function clearFilter() {
   router.replace({ path: '/containers' })

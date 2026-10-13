@@ -34,7 +34,7 @@
           <el-button @click="loadStats" :icon="Refresh">刷新</el-button>
         </div>
       </template>
-      <el-table :data="containerStats" stripe v-loading="loading">
+      <el-table :data="pageData" stripe v-loading="loading">
         <el-table-column prop="name" label="容器" min-width="150" />
         <el-table-column prop="image" label="镜像" min-width="150" />
         <el-table-column label="CPU %" width="100">
@@ -59,6 +59,7 @@
           <template #default="{ row }">{{ formatBytes(row.blockWriteBytes || 0) }}</template>
         </el-table-column>
       </el-table>
+      <PaginationBar v-model:page="page" v-model:pageSize="pageSize" :total="total" />
     </el-card>
   </div>
 </template>
@@ -69,10 +70,13 @@ import { Refresh } from '@element-plus/icons-vue'
 import { getNodeInfo, getAllContainerStats } from '@/api/monitor'
 import { useEnvironmentStore } from '@/stores/environment'
 import { formatBytes } from '@/utils/format'
+import { usePagination } from '@/composables/usePagination'
+import PaginationBar from '@/components/common/PaginationBar.vue'
 
 const envStore = useEnvironmentStore()
 const nodeInfo = ref<any>({})
 const containerStats = ref<any[]>([])
+const { page, pageSize, total, pageData } = usePagination(containerStats)
 const loading = ref(false)
 
 async function loadStats() {

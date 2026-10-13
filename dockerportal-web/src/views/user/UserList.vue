@@ -4,7 +4,7 @@
       <h2>用户管理</h2>
       <el-button type="primary" @click="showCreate = true">创建用户</el-button>
     </div>
-    <el-table :data="users" v-loading="loading" stripe>
+    <el-table :data="pageData" v-loading="loading" stripe>
       <el-table-column label="用户名" prop="username" min-width="150" />
       <el-table-column label="邮箱" prop="email" min-width="200" />
       <el-table-column label="角色" width="120">
@@ -35,6 +35,7 @@
         </template>
       </el-table-column>
     </el-table>
+    <PaginationBar v-model:page="page" v-model:pageSize="pageSize" :total="total" />
     <el-dialog v-model="showCreate" title="创建用户" width="400px">
       <el-form label-width="80px">
         <el-form-item label="用户名"><el-input v-model="createForm.username" /></el-form-item>
@@ -59,9 +60,12 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import request from '@/api/request'
+import { usePagination } from '@/composables/usePagination'
+import PaginationBar from '@/components/common/PaginationBar.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const users = ref<any[]>([])
+const { page, pageSize, total, pageData } = usePagination(users)
 const loading = ref(false)
 const showCreate = ref(false)
 const createForm = reactive({ username: '', password: '', email: '', role: 'VIEWER' })

@@ -10,7 +10,7 @@
       </div>
     </div>
 
-    <el-table :data="filteredImages" v-loading="loading" stripe>
+    <el-table :data="pageData" v-loading="loading" stripe>
       <el-table-column label="仓库:标签" min-width="280">
         <template #default="{ row }">
           <template v-if="row.RepoTags && row.RepoTags.length">
@@ -65,6 +65,7 @@
         </template>
       </el-table-column>
     </el-table>
+    <PaginationBar v-model:page="page" v-model:pageSize="pageSize" :total="total" />
 
     <!-- ==================== 镜像详情抽屉 ==================== -->
     <el-drawer v-model="detailVisible" :title="`镜像详情 - ${detailName}`" size="62%">
@@ -234,6 +235,8 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useEnvironmentStore } from '@/stores/environment'
 import { usePermission } from '@/composables/usePermission'
+import { usePagination } from '@/composables/usePagination'
+import PaginationBar from '@/components/common/PaginationBar.vue'
 import { getImages, pullImage, removeImage, inspectImage, pushImage, getImageHistory } from '@/api/image'
 import { pruneImages } from '@/api/system'
 import { runPruneChoice } from '@/utils/prune'
@@ -299,6 +302,8 @@ function usageOf(imageId: string) {
 const filteredImages = computed(() =>
   onlyInUse.value ? images.value.filter((i) => usageOf(i.Id).total > 0) : images.value
 )
+
+const { page, pageSize, total, pageData } = usePagination(filteredImages)
 
 function inUseTip(row: any) {
   const u = usageOf(row.Id)

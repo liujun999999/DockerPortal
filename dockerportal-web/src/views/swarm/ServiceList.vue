@@ -11,7 +11,7 @@
           </div>
         </div>
       </template>
-      <el-table :data="services" stripe v-loading="loading">
+      <el-table :data="pageData" stripe v-loading="loading">
         <el-table-column label="名称" min-width="150">
           <template #default="{ row }">
             <el-link type="primary" @click="router.push(`/swarm/services/${row.ID}`)">{{ row.Spec?.Name }}</el-link>
@@ -58,6 +58,7 @@
           </template>
         </el-table-column>
       </el-table>
+      <PaginationBar v-model:page="page" v-model:pageSize="pageSize" :total="total" />
     </el-card>
 
     <!-- 扩缩容对话框 -->
@@ -85,6 +86,8 @@ import { getServices, removeService as apiRemove, scaleService as apiScale } fro
 import { getSwarmTasks } from '@/api/swarm'
 import { useEnvironmentStore } from '@/stores/environment'
 import { usePermission } from '@/composables/usePermission'
+import { usePagination } from '@/composables/usePagination'
+import PaginationBar from '@/components/common/PaginationBar.vue'
 import { requireTypedConfirm } from '@/utils/danger'
 import { formatDateTime } from '@/utils/format'
 import SwarmGuide from '@/components/swarm/SwarmGuide.vue'
@@ -93,6 +96,7 @@ const router = useRouter()
 const envStore = useEnvironmentStore()
 const { canOperate } = usePermission()
 const services = ref<any[]>([])
+const { page, pageSize, total, pageData } = usePagination(services)
 const tasks = ref<any[]>([])
 const loading = ref(false)
 const guideCode = ref(0)

@@ -11,7 +11,7 @@
           </div>
         </div>
       </template>
-      <el-table :data="stacks" stripe v-loading="loading">
+      <el-table :data="pageData" stripe v-loading="loading">
         <el-table-column prop="name" label="名称" min-width="200" />
         <el-table-column prop="serviceCount" label="服务数" width="100" />
         <el-table-column label="包含服务" min-width="300">
@@ -29,6 +29,7 @@
           </template>
         </el-table-column>
       </el-table>
+      <PaginationBar v-model:page="page" v-model:pageSize="pageSize" :total="total" />
     </el-card>
 
     <!-- 部署 / 编辑共用：编辑就是把已保存的 compose 改一遍再同名重新部署 -->
@@ -84,6 +85,8 @@ import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
 import { getStacks, removeStack as apiRemove, deployStack as apiDeploy, getStackCompose } from '@/api/stack'
 import { useEnvironmentStore } from '@/stores/environment'
 import { usePermission } from '@/composables/usePermission'
+import { usePagination } from '@/composables/usePagination'
+import PaginationBar from '@/components/common/PaginationBar.vue'
 import { requireTypedConfirm } from '@/utils/danger'
 import SwarmGuide from '@/components/swarm/SwarmGuide.vue'
 import CodeEditor from '@/components/common/CodeEditor.vue'
@@ -91,6 +94,7 @@ import CodeEditor from '@/components/common/CodeEditor.vue'
 const envStore = useEnvironmentStore()
 const { canOperate } = usePermission()
 const stacks = ref<any[]>([])
+const { page, pageSize, total, pageData } = usePagination(stacks)
 const loading = ref(false)
 const guideCode = ref(0)
 const deployVisible = ref(false)

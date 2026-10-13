@@ -7,7 +7,7 @@
         <el-button type="primary" @click="showCreate = true" v-if="canOperate">创建网络</el-button>
       </div>
     </div>
-    <el-table :data="networks" v-loading="loading" stripe>
+    <el-table :data="pageData" v-loading="loading" stripe>
       <el-table-column label="名称" prop="Name" min-width="200" />
       <el-table-column label="ID" width="150">
         <template #default="{ row }">{{ row.Id?.slice(0, 12) }}</template>
@@ -24,6 +24,7 @@
         </template>
       </el-table-column>
     </el-table>
+    <PaginationBar v-model:page="page" v-model:pageSize="pageSize" :total="total" />
     <el-dialog v-model="showCreate" title="创建网络" width="400px">
       <el-form label-width="80px">
         <el-form-item label="名称"><el-input v-model="createForm.name" /></el-form-item>
@@ -47,6 +48,8 @@
 import { ref, reactive, onMounted, watch } from 'vue'
 import { useEnvironmentStore } from '@/stores/environment'
 import { usePermission } from '@/composables/usePermission'
+import { usePagination } from '@/composables/usePagination'
+import PaginationBar from '@/components/common/PaginationBar.vue'
 import { getNetworks, createNetwork, removeNetwork } from '@/api/network'
 import { pruneNetworks } from '@/api/system'
 import { runPrune } from '@/utils/prune'
@@ -55,6 +58,7 @@ import { ElMessage } from 'element-plus'
 const envStore = useEnvironmentStore()
 const { canOperate } = usePermission()
 const networks = ref<any[]>([])
+const { page, pageSize, total, pageData } = usePagination(networks)
 const loading = ref(false)
 const showCreate = ref(false)
 const createForm = reactive({ name: '', driver: 'bridge' })

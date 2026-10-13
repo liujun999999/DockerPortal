@@ -12,7 +12,7 @@
       </template>
       <el-alert type="info" :closable="false" show-icon style="margin-bottom: 12px"
         title="Config 用于把配置文件（nginx.conf、脚本等）注入服务任务。内容可查看；Docker 不支持原地修改，更新 = 删除后同名重建，服务需重新引用新 ID。" />
-      <el-table :data="items" stripe v-loading="loading">
+      <el-table :data="pageData" stripe v-loading="loading">
         <el-table-column prop="name" label="名称" min-width="160" />
         <el-table-column prop="id" label="ID" width="200">
           <template #default="{ row }"><code>{{ row.id?.slice(0, 12) }}</code></template>
@@ -30,6 +30,7 @@
           </template>
         </el-table-column>
       </el-table>
+      <PaginationBar v-model:page="page" v-model:pageSize="pageSize" :total="total" />
       <el-empty v-if="!loading && !items.length" description="暂无 Config" />
     </el-card>
 
@@ -72,10 +73,13 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { listConfigs, getConfig, createConfig, deleteConfig } from '@/api/swarmResource'
 import { useEnvironmentStore } from '@/stores/environment'
 import { usePermission } from '@/composables/usePermission'
+import { usePagination } from '@/composables/usePagination'
+import PaginationBar from '@/components/common/PaginationBar.vue'
 
 const envStore = useEnvironmentStore()
 const { canOperate } = usePermission()
 const items = ref<any[]>([])
+const { page, pageSize, total, pageData } = usePagination(items)
 const loading = ref(false)
 const viewVisible = ref(false)
 const viewing = ref<any>(null)

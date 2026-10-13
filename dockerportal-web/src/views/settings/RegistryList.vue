@@ -6,7 +6,7 @@
     </div>
     <el-alert type="info" :closable="false" class="mb-16"
       title="拉取镜像时，若镜像地址命中下方某个仓库，会自动携带对应账号凭据，可直连 Harbor / 阿里云 ACR / DockerHub 等私有仓库。内置 Docker Hub 为默认仓库，无需配置即可拉取公开镜像；如需拉取自己 Docker Hub 账号下的私有镜像，请额外新增一条仓库记录（地址留空即可）。" />
-    <el-table :data="registries" v-loading="loading" stripe>
+    <el-table :data="pageData" v-loading="loading" stripe>
       <el-table-column label="名称" prop="name" min-width="140" />
       <el-table-column label="仓库地址" min-width="240">
         <template #default="{ row }">
@@ -44,6 +44,7 @@
         </template>
       </el-table-column>
     </el-table>
+    <PaginationBar v-model:page="page" v-model:pageSize="pageSize" :total="total" />
 
     <el-dialog v-model="showForm" :title="editingId ? '编辑仓库' : '添加仓库'" width="520px">
       <el-form :model="form" label-width="100px">
@@ -83,9 +84,12 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getRegistries, createRegistry, updateRegistry, deleteRegistry, testRegistryById, testRegistryWith } from '@/api/registry'
 import { useEnvironmentStore } from '@/stores/environment'
+import { usePagination } from '@/composables/usePagination'
+import PaginationBar from '@/components/common/PaginationBar.vue'
 
 const envStore = useEnvironmentStore()
 const registries = ref<any[]>([])
+const { page, pageSize, total, pageData } = usePagination(registries)
 const loading = ref(false)
 const showForm = ref(false)
 const editingId = ref<number | null>(null)

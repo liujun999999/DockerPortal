@@ -7,7 +7,7 @@
         <el-button type="primary" @click="showCreate = true" v-if="canOperate">创建数据卷</el-button>
       </div>
     </div>
-    <el-table :data="volumes" v-loading="loading" stripe>
+    <el-table :data="pageData" v-loading="loading" stripe>
       <el-table-column label="名称" prop="Name" min-width="200" />
       <el-table-column label="驱动" prop="Driver" width="120" />
       <el-table-column label="挂载点" prop="Mountpoint" min-width="300" />
@@ -17,6 +17,7 @@
         </template>
       </el-table-column>
     </el-table>
+    <PaginationBar v-model:page="page" v-model:pageSize="pageSize" :total="total" />
     <el-dialog v-model="showCreate" title="创建数据卷" width="400px">
       <el-form label-width="80px">
         <el-form-item label="名称"><el-input v-model="createForm.name" /></el-form-item>
@@ -34,6 +35,8 @@
 import { ref, reactive, onMounted, watch } from 'vue'
 import { useEnvironmentStore } from '@/stores/environment'
 import { usePermission } from '@/composables/usePermission'
+import { usePagination } from '@/composables/usePagination'
+import PaginationBar from '@/components/common/PaginationBar.vue'
 import { getVolumes, createVolume, removeVolume } from '@/api/volume'
 import { pruneVolumes } from '@/api/system'
 import { runPrune } from '@/utils/prune'
@@ -43,6 +46,7 @@ import { ElMessage } from 'element-plus'
 const envStore = useEnvironmentStore()
 const { canOperate, isAdmin } = usePermission()
 const volumes = ref<any[]>([])
+const { page, pageSize, total, pageData } = usePagination(volumes)
 const loading = ref(false)
 const showCreate = ref(false)
 const createForm = reactive({ name: '', driver: '' })

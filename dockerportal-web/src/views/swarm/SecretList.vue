@@ -12,7 +12,7 @@
       </template>
       <el-alert type="info" :closable="false" show-icon style="margin-bottom: 12px"
         title="Secret 以加密方式存入 Raft 集群并注入服务任务。内容创建后不可再读取（与 docker CLI 一致），轮换 = 新建同名版本 + 更新服务引用。" />
-      <el-table :data="items" stripe v-loading="loading">
+      <el-table :data="pageData" stripe v-loading="loading">
         <el-table-column prop="name" label="名称" min-width="180" />
         <el-table-column prop="id" label="ID" width="220">
           <template #default="{ row }"><code>{{ row.id?.slice(0, 12) }}</code></template>
@@ -26,6 +26,7 @@
           </template>
         </el-table-column>
       </el-table>
+      <PaginationBar v-model:page="page" v-model:pageSize="pageSize" :total="total" />
       <el-empty v-if="!loading && !items.length" description="暂无 Secret" />
     </el-card>
 
@@ -53,10 +54,13 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { listSecrets, createSecret, deleteSecret } from '@/api/swarmResource'
 import { useEnvironmentStore } from '@/stores/environment'
 import { usePermission } from '@/composables/usePermission'
+import { usePagination } from '@/composables/usePagination'
+import PaginationBar from '@/components/common/PaginationBar.vue'
 
 const envStore = useEnvironmentStore()
 const { canOperate } = usePermission()
 const items = ref<any[]>([])
+const { page, pageSize, total, pageData } = usePagination(items)
 const loading = ref(false)
 const createVisible = ref(false)
 const saving = ref(false)

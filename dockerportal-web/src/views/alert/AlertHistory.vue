@@ -35,8 +35,9 @@
           </template>
         </el-table-column>
       </el-table>
-      <el-pagination v-if="total > 0" :current-page="page" :page-size="pageSize" :total="total"
-        layout="total, prev, pager, next" @current-change="handlePageChange" style="margin-top: 16px" />
+      <el-pagination v-if="total > 0" :current-page="page" :page-size="pageSize" :page-sizes="PAGE_SIZES" :total="total"
+        layout="total, sizes, prev, pager, next, jumper" @current-change="handlePageChange"
+        @size-change="handleSizeChange" style="margin-top: 16px; justify-content: flex-end" />
     </el-card>
   </div>
 </template>
@@ -45,6 +46,7 @@
 import { ref, onMounted } from 'vue'
 import { Refresh } from '@element-plus/icons-vue'
 import { getAlertEvents } from '@/api/alert'
+import { PAGE_SIZES } from '@/composables/usePagination'
 import { ALERT_SEVERITY, ALERT_STATUS } from '@/utils/constants'
 import { formatDateTime } from '@/utils/format'
 import StatusTag from '@/components/common/StatusTag.vue'
@@ -52,7 +54,7 @@ import StatusTag from '@/components/common/StatusTag.vue'
 const events = ref<any[]>([])
 const loading = ref(false)
 const page = ref(1)
-const pageSize = ref(20)
+const pageSize = ref(10)
 const total = ref(0)
 
 async function loadData() {
@@ -67,6 +69,12 @@ async function loadData() {
 
 function handlePageChange(p: number) {
   page.value = p
+  loadData()
+}
+
+function handleSizeChange(size: number) {
+  pageSize.value = size
+  page.value = 1
   loadData()
 }
 

@@ -134,7 +134,7 @@
                 @click="taskStateFilter = ''">清除过滤</el-link>
             </span>
           </div>
-          <el-table :data="filteredTasks" stripe size="small" v-loading="tasksLoading">
+          <el-table :data="taskPageData" stripe size="small" v-loading="tasksLoading">
             <el-table-column label="ID" width="130">
               <template #default="{ row }"><code>{{ row.ID?.substring(0, 12) }}</code></template>
             </el-table-column>
@@ -169,6 +169,7 @@
               </template>
             </el-table-column>
           </el-table>
+          <PaginationBar v-model:page="taskPage" v-model:pageSize="taskPageSize" :total="taskTotal" />
         </el-tab-pane>
 
         <!-- ==================== 日志 ==================== -->
@@ -228,6 +229,8 @@ import { useEnvironmentStore } from '@/stores/environment'
 import { usePermission } from '@/composables/usePermission'
 import { useFullscreen } from '@/composables/useFullscreen'
 import { useAutoRefresh } from '@/composables/useAutoRefresh'
+import { usePagination } from '@/composables/usePagination'
+import PaginationBar from '@/components/common/PaginationBar.vue'
 import { requireTypedConfirm } from '@/utils/danger'
 import { formatDateTime } from '@/utils/format'
 import { TASK_STATES } from '@/utils/constants'
@@ -274,6 +277,8 @@ const filteredTasks = computed(() =>
   taskStateFilter.value
     ? tasks.value.filter((t) => (t.Status?.State || 'unknown') === taskStateFilter.value)
     : tasks.value)
+
+const { page: taskPage, pageSize: taskPageSize, total: taskTotal, pageData: taskPageData } = usePagination(filteredTasks)
 
 // 有容器 ID 的 task 才能单独取日志；运行中副本排前面。选中值为 task ID（daemon 按 task 定位节点取日志）
 const taskLogOptions = computed(() =>
