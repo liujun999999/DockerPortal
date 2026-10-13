@@ -1,5 +1,7 @@
 package com.dockerportal.controller;
 
+import com.dockerportal.audit.Auditable;
+import com.dockerportal.model.enums.AuditLevel;
 import com.dockerportal.model.dto.ApiResponse;
 import com.dockerportal.model.dto.ChangePasswordRequest;
 import com.dockerportal.model.dto.LoginRequest;
@@ -38,6 +40,7 @@ public class AuthController {
 
     /** 自助修改密码（任何已登录用户，包括待改密用户）；成功后重签发新 token（清除 must_change claim），前端需替换本地 token */
     @PostMapping("/change-password")
+    @Auditable(action = "PASSWORD_CHANGE", resourceType = "auth", level = AuditLevel.SECURITY)
     public ApiResponse<Map<String, String>> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         userService.changeOwnPassword(username, request.getOldPassword(), request.getNewPassword());

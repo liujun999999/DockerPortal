@@ -1,5 +1,8 @@
 package com.dockerportal.controller;
 
+import com.dockerportal.audit.Auditable;
+import com.dockerportal.model.enums.AuditLevel;
+
 import com.dockerportal.model.dto.ApiResponse;
 import com.dockerportal.service.SwarmService;
 import com.github.dockerjava.api.model.Task;
@@ -35,6 +38,7 @@ public class SwarmController {
      */
     @PostMapping("/init")
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = "SWARM_INIT", resourceType = "swarm", level = AuditLevel.CRITICAL, environmentId = "#envId")
     public ApiResponse<Void> init(@PathVariable Long envId,
                                   @RequestParam(required = false) String advertiseAddr) {
         swarmService.initSwarm(envId, advertiseAddr);
@@ -46,6 +50,7 @@ public class SwarmController {
      */
     @PostMapping("/leave")
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = "SWARM_LEAVE", resourceType = "swarm", level = AuditLevel.CRITICAL, environmentId = "#envId")
     public ApiResponse<Void> leave(@PathVariable Long envId,
                                    @RequestParam(defaultValue = "false") boolean force) {
         swarmService.leaveSwarm(envId, force);

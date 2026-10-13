@@ -1,5 +1,8 @@
 package com.dockerportal.controller;
 
+import com.dockerportal.audit.Auditable;
+import com.dockerportal.model.enums.AuditLevel;
+
 import com.dockerportal.model.dto.ApiResponse;
 import com.dockerportal.service.PruneService;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +30,7 @@ public class SystemController {
     /** docker container prune */
     @PostMapping("/prune/containers")
     @PreAuthorize("hasAnyRole('ADMIN','OPERATOR')")
+    @Auditable(action = "SYSTEM_PRUNE_CONTAINERS", resourceType = "system", level = AuditLevel.CRITICAL, environmentId = "#envId")
     public ApiResponse<Map<String, Object>> pruneContainers(@PathVariable Long envId) {
         return ApiResponse.success(pruneService.pruneContainers(envId));
     }
@@ -34,6 +38,7 @@ public class SystemController {
     /** docker image prune [-a] */
     @PostMapping("/prune/images")
     @PreAuthorize("hasAnyRole('ADMIN','OPERATOR')")
+    @Auditable(action = "SYSTEM_PRUNE_IMAGES", resourceType = "system", level = AuditLevel.CRITICAL, environmentId = "#envId")
     public ApiResponse<Map<String, Object>> pruneImages(@PathVariable Long envId,
                                                         @RequestParam(defaultValue = "false") boolean all) {
         return ApiResponse.success(pruneService.pruneImages(envId, all));
@@ -42,6 +47,7 @@ public class SystemController {
     /** docker volume prune */
     @PostMapping("/prune/volumes")
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = "SYSTEM_PRUNE_VOLUMES", resourceType = "system", level = AuditLevel.CRITICAL, environmentId = "#envId")
     public ApiResponse<Map<String, Object>> pruneVolumes(@PathVariable Long envId) {
         return ApiResponse.success(pruneService.pruneVolumes(envId));
     }
@@ -49,6 +55,7 @@ public class SystemController {
     /** docker network prune */
     @PostMapping("/prune/networks")
     @PreAuthorize("hasAnyRole('ADMIN','OPERATOR')")
+    @Auditable(action = "SYSTEM_PRUNE_NETWORKS", resourceType = "system", level = AuditLevel.CRITICAL, environmentId = "#envId")
     public ApiResponse<Map<String, Object>> pruneNetworks(@PathVariable Long envId) {
         return ApiResponse.success(pruneService.pruneNetworks(envId));
     }
@@ -56,6 +63,7 @@ public class SystemController {
     /** docker builder prune */
     @PostMapping("/prune/builder")
     @PreAuthorize("hasAnyRole('ADMIN','OPERATOR')")
+    @Auditable(action = "SYSTEM_PRUNE_BUILDER", resourceType = "system", level = AuditLevel.CRITICAL, environmentId = "#envId")
     public ApiResponse<Map<String, Object>> pruneBuilder(@PathVariable Long envId) {
         return ApiResponse.success(pruneService.pruneBuilder(envId));
     }
@@ -63,6 +71,7 @@ public class SystemController {
     /** docker system prune [-a] */
     @PostMapping("/prune/system")
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = "SYSTEM_PRUNE_SYSTEM", resourceType = "system", level = AuditLevel.CRITICAL, environmentId = "#envId")
     public ApiResponse<Map<String, Object>> pruneSystem(@PathVariable Long envId,
                                                         @RequestParam(defaultValue = "false") boolean all) {
         return ApiResponse.success(pruneService.pruneSystem(envId, all));

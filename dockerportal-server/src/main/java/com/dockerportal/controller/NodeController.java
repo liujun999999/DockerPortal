@@ -1,5 +1,8 @@
 package com.dockerportal.controller;
 
+import com.dockerportal.audit.Auditable;
+import com.dockerportal.model.enums.AuditLevel;
+
 import com.dockerportal.model.dto.ApiResponse;
 import com.dockerportal.service.SwarmService;
 import com.github.dockerjava.api.model.SwarmNode;
@@ -42,6 +45,7 @@ public class NodeController {
      */
     @PutMapping("/{nodeId}")
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = "NODE_UPDATE", resourceType = "node", level = AuditLevel.CONFIG, resourceId = "#nodeId", environmentId = "#envId")
     public ApiResponse<Void> update(@PathVariable Long envId,
                                      @PathVariable String nodeId,
                                      @RequestBody Map<String, Object> body) {
@@ -54,6 +58,7 @@ public class NodeController {
 
     @DeleteMapping("/{nodeId}")
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = "NODE_REMOVE", resourceType = "node", level = AuditLevel.CRITICAL, resourceId = "#nodeId", environmentId = "#envId")
     public ApiResponse<Void> remove(@PathVariable Long envId,
                                      @PathVariable String nodeId,
                                      @RequestParam(defaultValue = "false") boolean force) {

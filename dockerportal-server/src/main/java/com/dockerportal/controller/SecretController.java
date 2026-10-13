@@ -1,5 +1,8 @@
 package com.dockerportal.controller;
 
+import com.dockerportal.audit.Auditable;
+import com.dockerportal.model.enums.AuditLevel;
+
 import com.dockerportal.model.dto.ApiResponse;
 import com.dockerportal.service.SwarmResourceService;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +31,7 @@ public class SecretController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN','OPERATOR')")
+    @Auditable(action = "SECRET_CREATE", resourceType = "secret", level = AuditLevel.SECURITY, resourceId = "#req.name", environmentId = "#envId")
     public ApiResponse<Map<String, Object>> create(@PathVariable Long envId,
                                                    @RequestBody SecretCreateRequest req) {
         return ApiResponse.success(resourceService.createSecret(envId, req.name(), req.data(), req.labels()));
@@ -35,6 +39,7 @@ public class SecretController {
 
     @DeleteMapping("/{secretId}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERATOR')")
+    @Auditable(action = "SECRET_DELETE", resourceType = "secret", level = AuditLevel.CRITICAL, resourceId = "#secretId", environmentId = "#envId")
     public ApiResponse<Void> delete(@PathVariable Long envId, @PathVariable String secretId) {
         resourceService.deleteSecret(envId, secretId);
         return ApiResponse.success();

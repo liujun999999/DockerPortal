@@ -1,5 +1,8 @@
 package com.dockerportal.controller;
 
+import com.dockerportal.audit.Auditable;
+import com.dockerportal.model.enums.AuditLevel;
+
 import com.dockerportal.model.dto.ApiResponse;
 import com.dockerportal.model.dto.EnvironmentCreateRequest;
 import com.dockerportal.model.dto.EnvironmentDTO;
@@ -31,12 +34,14 @@ public class EnvironmentController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = "ENV_CREATE", resourceType = "environment", level = AuditLevel.SECURITY, resourceId = "#result?.data?.name")
     public ApiResponse<EnvironmentDTO> create(@Valid @RequestBody EnvironmentCreateRequest request) {
         return ApiResponse.success(environmentService.create(request));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = "ENV_UPDATE", resourceType = "environment", level = AuditLevel.SECURITY, resourceId = "#id")
     public ApiResponse<EnvironmentDTO> update(@PathVariable Long id,
                                               @Valid @RequestBody EnvironmentCreateRequest request) {
         return ApiResponse.success(environmentService.update(id, request));
@@ -44,6 +49,7 @@ public class EnvironmentController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = "ENV_DELETE", resourceType = "environment", level = AuditLevel.CRITICAL, resourceId = "#id")
     public ApiResponse<Void> delete(@PathVariable Long id) {
         environmentService.delete(id);
         return ApiResponse.success();
@@ -62,11 +68,13 @@ public class EnvironmentController {
     }
 
     @PostMapping("/{id}/connect")
+    @Auditable(action = "ENV_CONNECT", resourceType = "environment", level = AuditLevel.OPERATION, resourceId = "#id")
     public ApiResponse<EnvironmentDTO> connect(@PathVariable Long id) {
         return ApiResponse.success(environmentService.connect(id));
     }
 
     @PostMapping("/{id}/disconnect")
+    @Auditable(action = "ENV_DISCONNECT", resourceType = "environment", level = AuditLevel.OPERATION, resourceId = "#id")
     public ApiResponse<EnvironmentDTO> disconnect(@PathVariable Long id) {
         return ApiResponse.success(environmentService.disconnect(id));
     }

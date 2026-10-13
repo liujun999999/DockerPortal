@@ -1,4 +1,12 @@
 import request from './request'
 
-export const getAuditLogs = (page = 1, size = 20) =>
-  request.get('/audit', { params: { page, size } })
+export interface AuditQuery {
+  page?: number
+  size?: number
+  level?: string
+  action?: string
+  username?: string
+}
+
+export const getAuditLogs = (params: AuditQuery = {}) =>
+  request.get('/audit', { params })

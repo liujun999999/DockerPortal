@@ -1,5 +1,8 @@
 package com.dockerportal.controller;
 
+import com.dockerportal.audit.Auditable;
+import com.dockerportal.model.enums.AuditLevel;
+
 import com.dockerportal.model.dto.ApiResponse;
 import com.dockerportal.service.StackService;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +39,7 @@ public class StackController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN','OPERATOR')")
+    @Auditable(action = "STACK_DEPLOY", resourceType = "stack", level = AuditLevel.OPERATION, environmentId = "#envId")
     public ApiResponse<Map<String, Object>> deploy(@PathVariable Long envId,
                                                    @RequestBody Map<String, String> body) {
         String name = body.get("name");
@@ -45,6 +49,7 @@ public class StackController {
 
     @DeleteMapping("/{stackName}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERATOR')")
+    @Auditable(action = "STACK_REMOVE", resourceType = "stack", level = AuditLevel.CRITICAL, resourceId = "#stackName", environmentId = "#envId")
     public ApiResponse<Void> remove(@PathVariable Long envId,
                                      @PathVariable String stackName) {
         stackService.removeStack(envId, stackName);

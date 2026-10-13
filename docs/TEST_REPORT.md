@@ -92,7 +92,8 @@
 - [ ] 容器列表批量启停/删除、克隆预填、日志「自动刷新」开关与智能跟随滚动
 - [ ] 服务详情任务状态过滤、单副本/聚合日志切换、扩缩容确认框
 - [ ] SSH 终端多标签 / 全屏；凭据保存后重进不回显明文
-- [ ] 告警规则触发 → Webhook 通知；审计日志留痕
+- [ ] 告警规则触发 → Webhook 通知
+- [ ] 审计日志：见第八节（原「审计日志留痕」表述夸大了，实际采集面此前几乎为空，已修复并复测）
 - [ ] 非 manager 节点执行管理操作时的提示文案友好性
 
 ## 七、通过判定
@@ -105,3 +106,14 @@
 | 阻断级缺陷 | 0 | ✅ 无 |
 
 **总体：通过（Pass with notes）。** 建议合并本轮新增测试、按 F-2 建立 CI 门禁；L4 与认证态 L3（E1/RBAC）待提供测试账号后补测。
+
+## 八、复测增补（审计日志缺陷 F-3 及修复）
+
+用户复核时质疑「审计日志没有相关功能」。核实代码确认此为**真实缺陷**，此前报告 L4 一句「审计日志留痕」措辞夸大了，特此更正。
+
+### F-3（已修复）— 审计采集面几乎为空，且与告警混为一谈的风险
+- **澄清**：告警（`AlertRule`/`AlertEvent`/`/api/alerts`）与审计日志（`AuditLog`/`/api/audit`）本就是两套独立子系统，未混用。
+- **根因**：`AuditService.record(...)` 全项目仅 2 处调用（SSH 终端会话、系统初始化）。登录/登出、容器/服务/Stack/镜像/卷/网络/节点/用户/环境/凭据/secret/config 等**写操作全部未记审计**，也没有 AOP 通用采集。审计页对绝大多数操作是空的。
+- **修复**：新增声明式审计——`@Auditable` 注解 + `AuditAspect`（`@Around` 采集操作人/IP/URI/成功失败/异常摘要/耗时），`AuditLevel` 四级分级（SECURITY/CRITICAL/OPERATION/CONFIG），`AuditLog` 加 `level/result/errorMessage/durationMs` 列（ddl-auto 自动建列）。15 个 Controller 的写端点全部标注；`AuthService.login` 显式记 LOGIN/LOGIN_FAILURE，`change-password` 走注解。前端审计页加分级/结果/耗时列与分级、用户名筛选。
+- **复测**：`mvn test` → **15 项全绿**（新增 `AuditAspectTest` 2 项，用 `AspectJProxyFactory` 织入真实切面验证 SpEL 取 resourceId/envId、成功与异常落库、分级透传）；前端 `vite build` 2386 modules 通过。
+- **遗留**：`@EnableAsync` 未启用（避免改变既有 `@Async` 线程语义），审计当前同步落库、外层 try/catch 兜底不影响响应；如需异步化单独评估。

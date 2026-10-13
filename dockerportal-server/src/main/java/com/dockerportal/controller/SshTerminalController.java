@@ -1,5 +1,8 @@
 package com.dockerportal.controller;
 
+import com.dockerportal.audit.Auditable;
+import com.dockerportal.model.enums.AuditLevel;
+
 import com.dockerportal.model.dto.ApiResponse;
 import com.dockerportal.model.entity.SshConfig;
 import com.dockerportal.service.SshService;
@@ -28,6 +31,7 @@ public class SshTerminalController {
 
     @PostMapping("/configs")
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = "SSH_CONFIG_CREATE", resourceType = "ssh-config", level = AuditLevel.SECURITY, resourceId = "#result?.data?.id", environmentId = "#envId")
     public ApiResponse<SshConfig> createConfig(@PathVariable Long envId, @RequestBody SshConfig config) {
         config.setEnvironmentId(envId);
         return ApiResponse.success(sshService.createConfig(config));
@@ -43,6 +47,7 @@ public class SshTerminalController {
 
     @PutMapping("/configs/{id}")
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = "SSH_CONFIG_UPDATE", resourceType = "ssh-config", level = AuditLevel.SECURITY, resourceId = "#id", environmentId = "#envId")
     public ApiResponse<SshConfig> updateConfig(@PathVariable Long envId,
                                                 @PathVariable Long id,
                                                 @RequestBody SshConfig config) {
@@ -51,6 +56,7 @@ public class SshTerminalController {
 
     @DeleteMapping("/configs/{id}")
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = "SSH_CONFIG_DELETE", resourceType = "ssh-config", level = AuditLevel.CRITICAL, resourceId = "#id", environmentId = "#envId")
     public ApiResponse<Void> deleteConfig(@PathVariable Long envId, @PathVariable Long id) {
         sshService.deleteConfig(id);
         return ApiResponse.success();

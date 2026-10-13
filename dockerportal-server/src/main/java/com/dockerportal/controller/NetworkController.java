@@ -1,5 +1,8 @@
 package com.dockerportal.controller;
 
+import com.dockerportal.audit.Auditable;
+import com.dockerportal.model.enums.AuditLevel;
+
 import com.dockerportal.model.dto.ApiResponse;
 import com.dockerportal.service.NetworkService;
 import com.github.dockerjava.api.model.Network;
@@ -29,6 +32,7 @@ public class NetworkController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN','OPERATOR')")
+    @Auditable(action = "NETWORK_CREATE", resourceType = "network", level = AuditLevel.OPERATION, environmentId = "#envId")
     public ApiResponse<String> create(@PathVariable Long envId, @RequestBody Map<String, Object> body) {
         String name = (String) body.get("name");
         String driver = (String) body.getOrDefault("driver", "bridge");
@@ -39,6 +43,7 @@ public class NetworkController {
 
     @DeleteMapping("/{networkId}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERATOR')")
+    @Auditable(action = "NETWORK_REMOVE", resourceType = "network", level = AuditLevel.CRITICAL, resourceId = "#networkId", environmentId = "#envId")
     public ApiResponse<Void> remove(@PathVariable Long envId, @PathVariable String networkId) {
         networkService.removeNetwork(envId, networkId);
         return ApiResponse.success();
@@ -46,6 +51,7 @@ public class NetworkController {
 
     @PostMapping("/{networkId}/connect")
     @PreAuthorize("hasAnyRole('ADMIN','OPERATOR')")
+    @Auditable(action = "NETWORK_CONNECT", resourceType = "network", level = AuditLevel.OPERATION, resourceId = "#networkId", environmentId = "#envId")
     public ApiResponse<Void> connect(@PathVariable Long envId,
                                      @PathVariable String networkId,
                                      @RequestParam String containerId) {
@@ -55,6 +61,7 @@ public class NetworkController {
 
     @PostMapping("/{networkId}/disconnect")
     @PreAuthorize("hasAnyRole('ADMIN','OPERATOR')")
+    @Auditable(action = "NETWORK_DISCONNECT", resourceType = "network", level = AuditLevel.OPERATION, resourceId = "#networkId", environmentId = "#envId")
     public ApiResponse<Void> disconnect(@PathVariable Long envId,
                                         @PathVariable String networkId,
                                         @RequestParam String containerId) {

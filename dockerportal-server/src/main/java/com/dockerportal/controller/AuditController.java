@@ -19,7 +19,10 @@ public class AuditController {
     @GetMapping
     public ApiResponse<Page<AuditLog>> list(
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return ApiResponse.success(auditService.listAll(page, size));
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String level,
+            @RequestParam(required = false) String action,
+            @RequestParam(required = false) String username) {
+        return ApiResponse.success(auditService.list(page, size, level, action, username));
     }
 }

@@ -1,5 +1,8 @@
 package com.dockerportal.controller;
 
+import com.dockerportal.audit.Auditable;
+import com.dockerportal.model.enums.AuditLevel;
+
 import com.dockerportal.model.dto.ApiResponse;
 import com.dockerportal.service.SwarmResourceService;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +36,7 @@ public class ConfigController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN','OPERATOR')")
+    @Auditable(action = "CONFIG_CREATE", resourceType = "config", level = AuditLevel.CONFIG, resourceId = "#req.name", environmentId = "#envId")
     public ApiResponse<Map<String, Object>> create(@PathVariable Long envId,
                                                    @RequestBody ConfigCreateRequest req) {
         return ApiResponse.success(resourceService.createConfig(envId, req.name(), req.data(),
@@ -41,6 +45,7 @@ public class ConfigController {
 
     @DeleteMapping("/{configId}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERATOR')")
+    @Auditable(action = "CONFIG_DELETE", resourceType = "config", level = AuditLevel.CRITICAL, resourceId = "#configId", environmentId = "#envId")
     public ApiResponse<Void> delete(@PathVariable Long envId, @PathVariable String configId) {
         resourceService.deleteConfig(envId, configId);
         return ApiResponse.success();

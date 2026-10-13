@@ -1,5 +1,8 @@
 package com.dockerportal.controller;
 
+import com.dockerportal.audit.Auditable;
+import com.dockerportal.model.enums.AuditLevel;
+
 import com.dockerportal.model.dto.ApiResponse;
 import com.dockerportal.service.SwarmService;
 import com.github.dockerjava.api.model.Task;
@@ -30,6 +33,7 @@ public class ServiceController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN','OPERATOR')")
+    @Auditable(action = "SERVICE_CREATE", resourceType = "service", level = AuditLevel.OPERATION, resourceId = "#result?.data", environmentId = "#envId")
     public ApiResponse<String> create(@PathVariable Long envId,
                                        @RequestBody Map<String, Object> serviceDef) {
         return ApiResponse.success(swarmService.createService(envId, serviceDef));
@@ -37,6 +41,7 @@ public class ServiceController {
 
     @PutMapping("/{serviceId}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERATOR')")
+    @Auditable(action = "SERVICE_UPDATE", resourceType = "service", level = AuditLevel.OPERATION, resourceId = "#serviceId", environmentId = "#envId")
     public ApiResponse<Void> update(@PathVariable Long envId,
                                      @PathVariable String serviceId,
                                      @RequestBody Map<String, Object> updates) {
@@ -46,6 +51,7 @@ public class ServiceController {
 
     @PostMapping("/{serviceId}/scale")
     @PreAuthorize("hasAnyRole('ADMIN','OPERATOR')")
+    @Auditable(action = "SERVICE_SCALE", resourceType = "service", level = AuditLevel.OPERATION, resourceId = "#serviceId", environmentId = "#envId")
     public ApiResponse<Void> scale(@PathVariable Long envId,
                                     @PathVariable String serviceId,
                                     @RequestParam int replicas) {
@@ -55,6 +61,7 @@ public class ServiceController {
 
     @DeleteMapping("/{serviceId}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERATOR')")
+    @Auditable(action = "SERVICE_REMOVE", resourceType = "service", level = AuditLevel.CRITICAL, resourceId = "#serviceId", environmentId = "#envId")
     public ApiResponse<Void> remove(@PathVariable Long envId,
                                      @PathVariable String serviceId) {
         swarmService.removeService(envId, serviceId);

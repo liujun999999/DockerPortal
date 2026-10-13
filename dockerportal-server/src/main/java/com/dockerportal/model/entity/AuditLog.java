@@ -42,6 +42,22 @@ public class AuditLog {
     @Column(length = 50)
     private String ip;
 
+    /** 分级：SECURITY / CRITICAL / OPERATION / CONFIG，见 AuditLevel */
+    @Column(length = 20)
+    private String level;
+
+    /** 结果：SUCCESS / FAILURE */
+    @Column(length = 10)
+    private String result;
+
+    /** 失败时的异常摘要，成功为 null */
+    @Column(name = "error_message", columnDefinition = "TEXT")
+    private String errorMessage;
+
+    /** 服务端处理耗时（毫秒） */
+    @Column(name = "duration_ms")
+    private Long durationMs;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

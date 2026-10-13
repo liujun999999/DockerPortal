@@ -4,8 +4,10 @@ import com.dockerportal.exception.BusinessException;
 import com.dockerportal.model.dto.LoginRequest;
 import com.dockerportal.model.dto.LoginResponse;
 import com.dockerportal.model.entity.User;
+import com.dockerportal.model.enums.AuditLevel;
 import com.dockerportal.repository.UserRepository;
 import com.dockerportal.security.JwtTokenProvider;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -13,6 +15,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.LocalDateTime;
 
@@ -25,33 +29,56 @@ public class AuthService {
     private final UserRepository userRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
+    private final AuditService auditService;
 
     public LoginResponse login(LoginRequest request) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
-        );
+        String username = request.getUsername();
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(username, request.getPassword())
+            );
 
-        User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new BusinessException(40100, "用户不存在"));
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new BusinessException(40100, "用户不存在"));
 
-        if (!user.getEnabled()) {
-            throw new BusinessException(40300, "账号已被禁用");
+            if (!user.getEnabled()) {
+                throw new BusinessException(40300, "账号已被禁用");
+            }
+
+            user.setLastLoginAt(LocalDateTime.now());
+            userRepository.save(user);
+
+            boolean mustChange = Boolean.TRUE.equals(user.getMustChangePassword());
+            String accessToken = jwtTokenProvider.generateAccessToken(user.getUsername(), user.getRole().name(), mustChange);
+            String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUsername(), user.getRole().name());
+
+            auditService.recordFull(username, "LOGIN", "auth", username, null,
+                    AuditLevel.SECURITY, "登录成功", clientIp(), true, null, null);
+
+            return LoginResponse.builder()
+                    .accessToken(accessToken)
+                    .refreshToken(refreshToken)
+                    .username(user.getUsername())
+                    .role(user.getRole().name())
+                    .mustChangePassword(Boolean.TRUE.equals(user.getMustChangePassword()))
+                    .build();
+        } catch (RuntimeException e) {
+            // 认证失败 / 账号禁用 / 用户不存在都记一条 LOGIN_FAILURE；只存异常类型，不落口令
+            auditService.recordFull(username, "LOGIN_FAILURE", "auth", username, null,
+                    AuditLevel.SECURITY, "登录失败", clientIp(), false,
+                    e.getClass().getSimpleName() + ": " + e.getMessage(), null);
+            throw e;
         }
+    }
 
-        user.setLastLoginAt(LocalDateTime.now());
-        userRepository.save(user);
-
-        boolean mustChange = Boolean.TRUE.equals(user.getMustChangePassword());
-        String accessToken = jwtTokenProvider.generateAccessToken(user.getUsername(), user.getRole().name(), mustChange);
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getUsername(), user.getRole().name());
-
-        return LoginResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .username(user.getUsername())
-                .role(user.getRole().name())
-                .mustChangePassword(Boolean.TRUE.equals(user.getMustChangePassword()))
-                .build();
+    private String clientIp() {
+        var attrs = RequestContextHolder.getRequestAttributes();
+        if (attrs instanceof ServletRequestAttributes sra) {
+            HttpServletRequest req = sra.getRequest();
+            String xff = req.getHeader("X-Forwarded-For");
+            return (xff != null && !xff.isBlank()) ? xff.split(",")[0].trim() : req.getRemoteAddr();
+        }
+        return null;
     }
 
     public void register(String username, String password, String email) {

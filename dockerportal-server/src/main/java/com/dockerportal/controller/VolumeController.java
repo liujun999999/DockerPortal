@@ -1,5 +1,8 @@
 package com.dockerportal.controller;
 
+import com.dockerportal.audit.Auditable;
+import com.dockerportal.model.enums.AuditLevel;
+
 import com.dockerportal.model.dto.ApiResponse;
 import com.dockerportal.service.VolumeService;
 import com.github.dockerjava.api.command.InspectVolumeResponse;
@@ -30,6 +33,7 @@ public class VolumeController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN','OPERATOR')")
+    @Auditable(action = "VOLUME_CREATE", resourceType = "volume", level = AuditLevel.OPERATION, environmentId = "#envId")
     public ApiResponse<String> create(@PathVariable Long envId, @RequestBody Map<String, Object> body) {
         String name = (String) body.get("name");
         String driver = (String) body.get("driver");
@@ -40,6 +44,7 @@ public class VolumeController {
 
     @DeleteMapping("/{volumeName}")
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = "VOLUME_REMOVE", resourceType = "volume", level = AuditLevel.CRITICAL, resourceId = "#volumeName", environmentId = "#envId")
     public ApiResponse<Void> remove(@PathVariable Long envId,
                                     @PathVariable String volumeName,
                                     @RequestParam(defaultValue = "false") boolean force) {

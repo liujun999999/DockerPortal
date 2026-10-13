@@ -1,5 +1,8 @@
 package com.dockerportal.controller;
 
+import com.dockerportal.audit.Auditable;
+import com.dockerportal.model.enums.AuditLevel;
+
 import com.dockerportal.model.dto.ApiResponse;
 import com.dockerportal.model.entity.Registry;
 import com.dockerportal.service.RegistryService;
@@ -27,18 +30,21 @@ public class RegistryController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = "REGISTRY_CREATE", resourceType = "registry", level = AuditLevel.SECURITY, resourceId = "#result?.data?.id")
     public ApiResponse<Registry> create(@RequestBody Registry registry) {
         return ApiResponse.success(registryService.create(registry));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = "REGISTRY_UPDATE", resourceType = "registry", level = AuditLevel.SECURITY, resourceId = "#id")
     public ApiResponse<Registry> update(@PathVariable Long id, @RequestBody Registry registry) {
         return ApiResponse.success(registryService.update(id, registry));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
+    @Auditable(action = "REGISTRY_DELETE", resourceType = "registry", level = AuditLevel.CRITICAL, resourceId = "#id")
     public ApiResponse<Void> delete(@PathVariable Long id) {
         registryService.delete(id);
         return ApiResponse.success();
