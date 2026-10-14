@@ -1,10 +1,8 @@
 package com.dockerportal.exception;
 
-import com.dockerportal.docker.DockerClientManager;
 import com.dockerportal.model.dto.ApiResponse;
 import com.github.dockerjava.api.exception.DockerException;
 import com.github.dockerjava.api.exception.NotFoundException;
-import com.github.dockerjava.api.model.LocalNodeState;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -26,7 +24,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class GlobalExceptionHandler {
 
-    private final DockerClientManager dockerClientManager;
+    private final SwarmErrorClassifier swarmErrorClassifier;
 
     private static final Pattern ENV_ID_PATTERN = Pattern.compile("/env/(\\d+)/");
 
@@ -76,40 +74,19 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleDockerException(DockerException e, HttpServletRequest request) {
         String msg = e.getMessage() == null ? "" : e.getMessage();
         log.warn("Docker API error: {}", msg);
-        if (msg.contains("swarm")) {
-            int code = classifySwarmError(request, msg);
-            return switch (code) {
-                case 40902 -> ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.error(40902,
-                        "当前节点是 Swarm Worker 节点，无集群管理权限。请在 Manager 节点获取令牌后加入集群，或切换到 Swarm Manager 所在的环境。"));
-                case 40903 -> ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.error(40903,
-                        "当前 Swarm 集群的 Manager 已被锁定，需要输入解锁密钥（docker swarm unlock）后才能管理。"));
-                default -> ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.error(40901,
-                        "当前 Docker 环境尚未初始化 Swarm 集群，可在此页面一键初始化。"));
-            };
+        if (swarmErrorClassifier.isSwarmError(msg)) {
+            int code = swarmErrorClassifier.classify(envIdFromRequest(request), msg);
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(ApiResponse.error(code, swarmErrorClassifier.friendlyMessage(code)));
         }
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
                 .body(ApiResponse.error(50002, "Docker API 调用失败：" + msg));
     }
 
-    /**
-     * 从请求 URI 解析 envId，查当前环境的 LocalNodeState；失败则回退到文字匹配。
-     */
-    private int classifySwarmError(HttpServletRequest request, String msg) {
+    /** 从请求 URI 解析 envId，供分类器查询当前环境的 LocalNodeState；解析不到返回 null（走文字回退） */
+    private Long envIdFromRequest(HttpServletRequest request) {
         Matcher m = ENV_ID_PATTERN.matcher(request.getRequestURI());
-        if (m.find()) {
-            try {
-                var swarm = dockerClientManager.getClient(Long.valueOf(m.group(1))).infoCmd().exec().getSwarm();
-                LocalNodeState state = swarm == null ? null : swarm.getLocalNodeState();
-                if (state == LocalNodeState.LOCKED) return 40903;
-                // docker-java 枚举无 JOINED，worker 节点报 PENDING；未映射状态为 null 走下方文字回退
-                if (state == LocalNodeState.PENDING) return 40902;
-                if (state == LocalNodeState.INACTIVE || state == LocalNodeState.EMPTY) return 40901;
-            } catch (Exception ex) {
-                log.debug("Cannot resolve swarm state, fallback to message matching", ex);
-            }
-        }
-        if (msg.contains("Error 3: This node is not part of a swarm")) return 40902;
-        return 40901;
+        return m.find() ? Long.valueOf(m.group(1)) : null;
     }
 
     /**

@@ -1,6 +1,7 @@
 <template>
   <div class="secret-list">
-    <el-card shadow="never">
+    <SwarmGuide v-if="guideCode" :code="guideCode" @done="loadData" @retry="loadData" />
+    <el-card v-else shadow="never">
       <template #header>
         <div class="card-header">
           <span>Secrets</span>
@@ -56,6 +57,7 @@ import { useEnvironmentStore } from '@/stores/environment'
 import { usePermission } from '@/composables/usePermission'
 import { usePagination } from '@/composables/usePagination'
 import PaginationBar from '@/components/common/PaginationBar.vue'
+import SwarmGuide from '@/components/swarm/SwarmGuide.vue'
 
 const envStore = useEnvironmentStore()
 const { canOperate } = usePermission()
@@ -64,6 +66,7 @@ const { page, pageSize, total, pageData } = usePagination(items)
 const loading = ref(false)
 const createVisible = ref(false)
 const saving = ref(false)
+const guideCode = ref(0)
 const form = ref({ name: '', data: '' })
 
 async function loadData() {
@@ -72,8 +75,11 @@ async function loadData() {
   loading.value = true
   try {
     items.value = await listSecrets(envId)
-  } catch (e) {
+    guideCode.value = 0
+  } catch (e: any) {
+    // Worker 节点 / 未初始化集群：不弹红错，展示引导组件
     items.value = []
+    if (e.swarmGuide) guideCode.value = e.swarmGuide
   } finally { loading.value = false }
 }
 

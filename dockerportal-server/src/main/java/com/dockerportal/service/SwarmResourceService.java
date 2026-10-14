@@ -3,6 +3,7 @@ package com.dockerportal.service;
 import com.dockerportal.docker.DockerClientFactory;
 import com.dockerportal.docker.DockerClientManager;
 import com.dockerportal.exception.BusinessException;
+import com.dockerportal.exception.SwarmErrorClassifier;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.dockerjava.api.DockerClient;
@@ -39,6 +40,7 @@ public class SwarmResourceService {
     private final DockerClientManager dockerClientManager;
     private final DockerClientFactory dockerClientFactory;
     private final EnvironmentService environmentService;
+    private final SwarmErrorClassifier swarmErrorClassifier;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     // ==================== Secrets ====================
@@ -193,8 +195,14 @@ public class SwarmResourceService {
             try (DockerHttpClient.Response resp = http.execute(builder.build())) {
                 String body = readAll(resp);
                 if (resp.getStatusCode() >= 400) {
-                    throw new BusinessException(50000, "Docker API " + resp.getStatusCode()
-                            + ": " + extractMessage(body));
+                    String message = extractMessage(body);
+                    // Swarm 控制面错误（如 Worker 节点无管理权限的 503）映射为引导码，交由前端 SwarmGuide 渲染，
+                    // 而不是把 Docker 原始报错直接弹成红错；与 docker-java 类型化命令路径保持一致。
+                    if (swarmErrorClassifier.isSwarmError(message)) {
+                        int code = swarmErrorClassifier.classify(envId, message);
+                        throw new BusinessException(code, swarmErrorClassifier.friendlyMessage(code));
+                    }
+                    throw new BusinessException(50000, "Docker API " + resp.getStatusCode() + ": " + message);
                 }
                 return body;
             }
