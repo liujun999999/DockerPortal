@@ -28,6 +28,14 @@ public class GlobalExceptionHandler {
 
     private static final Pattern ENV_ID_PATTERN = Pattern.compile("/env/(\\d+)/");
 
+    /** docker-java 异常信息常形如 Status 400: {"message":"..."}，用于提取内层 daemon 原文 */
+    private static final Pattern DOCKER_MESSAGE_PATTERN =
+            Pattern.compile("\"message\"\\s*:\\s*\"(.*?)\"", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+    private static final Pattern STATUS_PREFIX_PATTERN = Pattern.compile("^Status\\s+\\d+:\\s*");
+    /** 删除被服务占用的 Secret/Config 时 daemon 的报错 */
+    private static final Pattern RESOURCE_IN_USE_PATTERN = Pattern.compile(
+            "(?i)(secret|config)\\s+'([^']+)'\\s+is in use by the following service[s]?\\s*:?\\s*(.+)");
+
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException e) {
         log.warn("Business exception: {}", e.getMessage());
@@ -79,14 +87,42 @@ public class GlobalExceptionHandler {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(ApiResponse.error(code, swarmErrorClassifier.friendlyMessage(code)));
         }
+        // 去掉 docker-java 的 "Status NNN: {\"message\":\"...\"}" 外壳，尽量还原 daemon 原始提示
+        String detail = extractDockerMessage(msg);
+        String friendly = translateDockerError(detail);
+        if (friendly != null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(40000, friendly));
+        }
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
-                .body(ApiResponse.error(50002, "Docker API 调用失败：" + msg));
+                .body(ApiResponse.error(50002, "Docker API 调用失败：" + detail));
     }
 
     /** 从请求 URI 解析 envId，供分类器查询当前环境的 LocalNodeState；解析不到返回 null（走文字回退） */
     private Long envIdFromRequest(HttpServletRequest request) {
         Matcher m = ENV_ID_PATTERN.matcher(request.getRequestURI());
         return m.find() ? Long.valueOf(m.group(1)) : null;
+    }
+
+    /** docker-java 异常信息形如 Status 400: {"message":"..."}；提取内层 message，无则去掉 Status 前缀原样返回 */
+    private String extractDockerMessage(String msg) {
+        if (msg == null) return "";
+        Matcher m = DOCKER_MESSAGE_PATTERN.matcher(msg);
+        if (m.find()) {
+            return m.group(1).replace("\\\"", "\"").replace("\\n", " ").trim();
+        }
+        return STATUS_PREFIX_PATTERN.matcher(msg).replaceFirst("").trim();
+    }
+
+    /** 把常见 Docker daemon 英文报错翻译成可操作的中文提示；无匹配返回 null（走通用兜底） */
+    private String translateDockerError(String msg) {
+        if (msg == null || msg.isEmpty()) return null;
+        Matcher inUse = RESOURCE_IN_USE_PATTERN.matcher(msg);
+        if (inUse.find()) {
+            String kind = "secret".equalsIgnoreCase(inUse.group(1)) ? "Secret" : "Config";
+            return String.format("该 %s「%s」正被服务 %s 使用，无法删除。请先更新相关服务、移除对该 %s 的引用后再重试。",
+                    kind, inUse.group(2), inUse.group(3).trim(), kind);
+        }
+        return null;
     }
 
     /**
