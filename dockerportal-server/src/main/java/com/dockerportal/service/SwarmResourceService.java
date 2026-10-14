@@ -61,9 +61,11 @@ public class SwarmResourceService {
         }
         DockerClient client = dockerClientManager.getClient(envId);
         requireManager(client);
+        // docker-java 的 SecretSpec.withData(String) 内部会自动 Base64 编码一次，
+        // 这里必须传明文；若再自行编码会导致双重 base64，容器内 /run/secrets 看到的是编码串。
         SecretSpec spec = new SecretSpec()
                 .withName(name.trim())
-                .withData(Base64.getEncoder().encodeToString(dataPlain.getBytes(StandardCharsets.UTF_8)));
+                .withData(dataPlain);
         if (labels != null && !labels.isEmpty()) spec.withLabels(labels);
         var resp = client.createSecretCmd(spec).exec();
         log.info("Secret created: {} ({})", name, resp.getId());
