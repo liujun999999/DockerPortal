@@ -41,7 +41,7 @@
         <el-table-column label="详情 / 错误" min-width="200">
           <template #default="{ row }">
             <span v-if="row.errorMessage" class="err-text">{{ row.errorMessage }}</span>
-            <el-popover v-else-if="row.detail" placement="top" :width="420" trigger="hover">
+            <el-popover v-else-if="row.detail" placement="top" :width="420" trigger="click">
               <template #reference>
                 <span class="detail-text">{{ row.detail?.substring(0, 50) }}</span>
               </template>
